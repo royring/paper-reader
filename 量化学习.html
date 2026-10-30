@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>周末两天 · 大模型量化学习手册</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --ink: #1f2430;
+    --muted: #5b6472;
+    --brand: #3b5bdb;
+    --brand-soft: #eef1fd;
+    --accent: #e8590c;
+    --accent-soft: #fff4e6;
+    --line: #e3e6eb;
+    --code-bg: #141822;
+    --code-ink: #d7dee8;
+    --ok: #2f9e44;
+    --ok-soft: #e9f7ec;
+    --radius: 12px;
+    --mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.75;
+    font-size: 15.5px;
+  }
+
+  /* ===== Layout ===== */
+  .layout { display: flex; max-width: 1200px; margin: 0 auto; }
+  aside {
+    width: 260px; flex-shrink: 0; position: sticky; top: 0;
+    height: 100vh; overflow-y: auto; padding: 28px 18px;
+    border-right: 1px solid var(--line);
+    background: var(--surface);
+  }
+  main { flex: 1; min-width: 0; padding: 40px 48px 120px; }
+
+  /* ===== Sidebar ===== */
+  .logo { font-weight: 700; font-size: 17px; padding: 6px 10px 2px; }
+  .logo .sub { display: block; font-size: 12px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+  .toc { margin-top: 22px; font-size: 13.5px; }
+  .toc .group { font-size: 11.5px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; margin: 18px 0 6px; padding-left: 10px; }
+  .toc a { display: block; padding: 5px 10px; border-radius: 8px; color: var(--ink); text-decoration: none; border-left: 2px solid transparent; }
+  .toc a:hover { background: var(--brand-soft); color: var(--brand); }
+  .toc a.active { background: var(--brand-soft); color: var(--brand); border-left-color: var(--brand); font-weight: 600; }
+
+  /* ===== Hero ===== */
+  .hero { background: linear-gradient(135deg, #1d2b64 0%, #3b5bdb 70%, #7048e8 100%); color: #fff; border-radius: var(--radius); padding: 44px 44px 40px; margin-bottom: 36px; }
+  .hero h1 { font-size: 30px; letter-spacing: .5px; }
+  .hero p { margin-top: 14px; max-width: 640px; opacity: .92; font-size: 15px; }
+  .hero .tags { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 10px; }
+  .hero .tag { background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3); padding: 4px 14px; border-radius: 999px; font-size: 12.5px; }
+  .hero .tag.hot { background: rgba(255,255,255,.28); font-weight: 600; }
+
+  /* ===== Sections ===== */
+  section { margin: 44px 0; scroll-margin-top: 20px; }
+  .day-banner { display: flex; align-items: center; gap: 14px; margin: 60px 0 8px; }
+  .day-banner .pill { background: var(--brand); color: #fff; font-weight: 700; padding: 6px 18px; border-radius: 999px; font-size: 14px; white-space: nowrap; }
+  .day-banner h2 { font-size: 24px; }
+  h3 { font-size: 20px; margin: 34px 0 14px; padding-left: 12px; border-left: 4px solid var(--brand); }
+  h4 { font-size: 16.5px; margin: 26px 0 10px; }
+  h4 .num { color: var(--brand); font-family: var(--mono); margin-right: 8px; }
+  p { margin: 10px 0; }
+  ul, ol { padding-left: 26px; margin: 10px 0; }
+  li { margin: 6px 0; }
+  strong { color: #0b1220; }
+  a { color: var(--brand); text-decoration: none; border-bottom: 1px dashed #b9c3f5; }
+  a:hover { border-bottom-style: solid; }
+
+  /* ===== Cards ===== */
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 26px; margin: 14px 0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } aside { display: none; } main { padding: 24px 18px; } .hero { padding: 30px 24px; } .hero h1 { font-size: 24px; } }
+
+  .method { position: relative; overflow: hidden; }
+  .method::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--brand); }
+  .method.awq::before { background: var(--accent); }
+  .method.smooth::before { background: var(--ok); }
+  .method .title { font-weight: 700; font-size: 16px; }
+  .method .meta { font-size: 12.5px; color: var(--muted); margin: 2px 0 8px; font-family: var(--mono); }
+  .badge { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 10px; border-radius: 999px; margin-left: 8px; vertical-align: 2px; }
+  .badge.must { background: #fdeeee; color: #c92a2a; }
+
+  /* ===== Callout ===== */
+  .callout { display: flex; gap: 14px; border-radius: var(--radius); padding: 16px 20px; margin: 16px 0; font-size: 14.5px; }
+  .callout .icon { font-size: 20px; line-height: 1.4; }
+  .callout.tip { background: var(--brand-soft); border: 1px solid #ccd5f8; }
+  .callout.warn { background: var(--accent-soft); border: 1px solid #f8dcC0; }
+  .callout.key { background: var(--ok-soft); border: 1px solid #bfe5c8; }
+
+  /* ===== Code ===== */
+  pre { background: var(--code-bg); color: var(--code-ink); border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.65; margin: 12px 0; }
+  code { font-family: var(--mono); font-size: 13px; background: #e9edf3; border-radius: 5px; padding: 1.5px 6px; color: #364fc7; }
+  pre code { background: none; padding: 0; color: inherit; }
+  .code-label { font-size: 12px; color: var(--muted); font-family: var(--mono); margin: 14px 0 -8px; }
+
+  /* ===== Tables ===== */
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; background: var(--surface); border-radius: var(--radius); overflow: hidden; font-size: 14px; box-shadow: 0 0 0 1px var(--line); }
+  th { background: #21263a; color: #fff; text-align: left; padding: 10px 14px; font-weight: 600; font-size: 13.5px; }
+  td { padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  td .dim { color: var(--muted); }
+
+  /* ===== Schedule timeline ===== */
+  .sched { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 14px 0; }
+  .sched-row { display: grid; grid-template-columns: 130px 1fr 1fr; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 18px; align-items: center; }
+  .sched-row .when { font-weight: 700; color: var(--brand); font-size: 13.5px; }
+  .sched-row .what { font-size: 14.5px; }
+  .sched-row .out { font-size: 13px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 12px; }
+  @media (max-width: 900px) { .sched-row { grid-template-columns: 1fr; } .sched-row .out { border-left: none; padding-left: 0; } }
+
+  /* ===== Checklists ===== */
+  .check label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; padding: 8px 12px; border-radius: 8px; }
+  .check label:hover { background: var(--brand-soft); }
+  .check input { margin-top: 5px; accent-color: var(--ok); width: 16px; height: 16px; flex-shrink: 0; }
+  .check input:checked + span { color: var(--muted); text-decoration: line-through; }
+
+  /* ===== Flow diagram ===== */
+  .flow { background: var(--code-bg); color: #c6d0e0; font-family: var(--mono); white-space: pre; font-size: 12.5px; }
+
+  footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; text-align: center; }
+  .progress-wrap { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, #3b5bdb, #7048e8); width: 0%; z-index: 99; transition: width .1s; }
+</style>
+</head>
+<body>
+<div class="progress-wrap" id="progress"></div>
+<div class="layout">
+
+<!-- ================= Sidebar TOC ================= -->
+<aside>
+  <div class="logo">📚 量化学习手册<span class="sub">周末两天速通版 · Weekend Edition</span></div>
+  <nav class="toc">
+    <div class="group">总览</div>
+    <a href="#overview">📅 时间表</a>
+    <div class="group">周六 · 基础与方法</div>
+    <a href="#d1-am">① 量化数学基础</a>
+    <a href="#d1-pm">② 三大 PTQ 方法</a>
+    <a href="#d1-eve">③ QAT 与前沿</a>
+    <div class="group">周日 · 工具与实战</div>
+    <a href="#d2-am">④ 常用工具链</a>
+    <a href="#d2-pm">⑤ 综合实战项目</a>
+    <a href="#d2-eve">⑥ 复盘与路线图</a>
+    <div class="group">附录</div>
+    <a href="#glossary">术语速查</a>
+    <a href="#refs">参考资料</a>
+  </nav>
+</aside>
+
+<!-- ================= Main ================= -->
+<main>
+
+<div class="hero">
+  <h1>周末两天 · 大模型量化学习手册</h1>
+  <p>目标：利用一个周末（两天，每天约 6–8 小时），从零建立模型量化的完整知识框架，掌握主流 PTQ / QAT 方法、了解 2024–2025 最新技术方向，并亲手用常用工具完成一次真实模型的量化与部署。</p>
+  <p style="font-size:13.5px; margin-top:6px;">适合读者：会 Python 与 PyTorch、了解 Transformer 基本结构的工程师 / 学生。</p>
+  <div class="tags">
+    <span class="tag hot">GPTQ / AWQ / SmoothQuant</span>
+    <span class="tag">BitNet b1.58 · QTIP · SpinQuant</span>
+    <span class="tag">llama.cpp · vLLM · GPTQModel</span>
+    <span class="tag">动手实战 ✓</span>
+  </div>
+</div>
+
+<!-- ===== Overview ===== -->
+<section id="overview">
+  <div class="day-banner"><span class="pill">📅 总览</span><h2>两天时间表</h2></div>
+  <div class="sched">
+    <div class="sched-row"><div class="when">周六上午</div><div class="what">量化数学基础与定点表示</div><div class="out">产出：能手算一个量化例子</div></div>
+    <div class="sched-row"><div class="when">周六下午</div><div class="what">主流 PTQ 方法（GPTQ / AWQ / SmoothQuant）</div><div class="out">产出：理解各方法适用场景</div></div>
+    <div class="sched-row"><div class="when">周六晚上</div><div class="what">QAT 与极低比特（BitNet / QTIP 等）</div><div class="out">产出：看懂 2-bit / 1.58-bit 路线</div></div>
+    <div class="sched-row"><div class="when">周日上午</div><div class="what">工具链实战（GPTQModel / llama.cpp / vLLM / bitsandbytes）</div><div class="out">产出：亲手量化一个小模型</div></div>
+    <div class="sched-row"><div class="when">周日下午</div><div class="what">评估、部署与综合项目</div><div class="out">产出：跑通端到端流程</div></div>
+    <div class="sched-row"><div class="when">周日晚上</div><div class="what">复盘 + 进阶路线图</div><div class="out">产出：制定下一阶段计划</div></div>
+  </div>
+</section>
+
+<!-- ================= DAY 1 ================= -->
+<div class="day-banner"><span class="pill">第一天 · 周六</span><h2>基础与核心方法</h2></div>
+
+<section id="d1-am">
+  <h3>上午 · 量化基础（约 3 小时）</h3>
+
+  <h4><span class="num">1.1</span>为什么需要量化？</h4>
+  <ul>
+    <li>大模型参数以 FP16 / BF16 存储，<strong>7B 模型仅权重就需 ~14 GB 显存</strong>。</li>
+    <li>量化（Quantization）= 用更少比特表示权重 / 激活值（如 INT8、INT4），收益：
+      <ul>
+        <li><strong>显存 / 内存降为 1/2 ~ 1/8</strong></li>
+        <li><strong>推理更快</strong>（低精度 GEMM 算子吞吐更高，如 W4A8、W4A4）</li>
+        <li><strong>能耗更低</strong>，是可持续 AI 优化的重要一环（见 <a href="https://www.sciencedirect.com/science/article/pii/S2666827025001458" target="_blank">神经网络优化综述</a>）</li>
+      </ul>
+    </li>
+    <li>代价：数值精度损失 → 掉点。量化研究的核心就是<strong>如何少掉点甚至不掉点</strong>。</li>
+  </ul>
+
+  <h4><span class="num">1.2</span>核心数学：线性量化</h4>
+  <p>最常见的<strong>均匀仿射量化</strong>（uniform affine quantization）：</p>
+  <pre><code>x_q = round(x / s) + z          # 量化
+x̂  = (x_q - z) * s              # 反量化（dequantize）
+s  = (x_max - x_min) / (2^b - 1) # scale（缩放因子）
+z  = -round(x_min / s)           # zero point（零点）</code></pre>
+  <div class="grid-3">
+    <div class="card"><strong>对称量化</strong><br><span style="color:var(--muted)">z = 0，适合权重（近似零均值高斯分布）</span></div>
+    <div class="card"><strong>非对称量化</strong><br><span style="color:var(--muted)">z ≠ 0，适合激活值（如 ReLU 后全非负、有偏移）</span></div>
+    <div class="card"><strong>逐通道 vs 逐张量</strong><br><span style="color:var(--muted)">权重几乎总是 per-channel；激活一般 per-tensor（硬件友好）</span></div>
+  </div>
+  <div class="card"><strong>分块量化（Block-wise）</strong>：每 64/128 个连续元素共享一组 (scale, min)，是 GGUF / bitsandbytes 的做法，对异常值更鲁棒。</div>
+
+  <div class="callout tip"><span class="icon">✍️</span><div><strong>动手练习（30 分钟）</strong>：用 NumPy 手写 <code>quantize_int8(x, asymmetric=True)</code> 和 <code>dequantize</code>，量化随机张量并计算 MSE 与余弦相似度，观察对称 vs 非对称在 ReLU 输出上的差异。</div></div>
+
+  <h4><span class="num">1.3</span>量化分类（一张图记住）</h4>
+  <pre class="flow">                 ┌─ 训练后量化 PTQ（无需重训练，校准数据即可）
+量化时机 ─────────┤
+                 └─ 量化感知训练 QAT（训练/微调中模拟量化）
+
+                 ┌─ 仅权重 W-only（INT4 权重 + FP16 激活）
+量化对象 ─────────┤
+                 └─ 权重+激活 W+A（W4A16 / W8A8 / W4A8 / W4A4）
+
+                 ┌─ 静态：离线确定激活 scale
+激活 scale ───────┤
+                 └─ 动态：运行时实时统计（KV Cache 也可量化）</pre>
+  <ul>
+    <li><strong>PTQ vs QAT</strong>：PTQ 便宜、主流；QAT 精度上限更高，极低比特（&lt;4bit）必需。相关应用综述见 <a href="https://dl.acm.org/doi/pdf/10.1145/3776759.3776826" target="_blank">ACM QAT 应用综述</a>。</li>
+    <li><strong>KV Cache 量化</strong>：长上下文场景下 KV Cache 显存占用超过权重，量化它是关键优化点。</li>
+  </ul>
+
+  <h4><span class="num">1.4</span>为什么 LLM 量化难？—— 异常值（Outliers）问题</h4>
+  <div class="callout warn"><span class="icon">⚠️</span><div>
+    LLM 激活值中存在<strong>系统性大幅异常值</strong>（比正常值大 100 倍），集中在特定通道，贯穿几乎所有层。若用统一 scale，异常值会"撑大"scale，把正常值挤进很少的量化台阶 → 精度崩塌。
+  </div></div>
+  <div class="callout key"><span class="icon">🔑</span><div><strong>几乎所有现代量化方法都在解决这一个问题。</strong>记住这句话，下午的方法全部能串起来。</div></div>
+</section>
+
+<section id="d1-pm">
+  <h3>下午 · 主流 PTQ 方法（约 3 小时）</h3>
+  <p>按思想演进阅读，每个方法：核心思想 → 解决异常值的招式 → 精度/成本定位。</p>
+
+  <h4><span class="num">2.1</span>基线方法（快速过一遍，各 15 分钟）</h4>
+  <table>
+    <tr><th>方法</th><th>年份</th><th>核心思想</th></tr>
+    <tr><td><strong>LLM.int8()</strong></td><td>2022</td><td>W8A8 混合精度：异常通道保留 FP16（矩阵分解），其余 INT8</td></tr>
+    <tr><td><strong>ZeroQuant</strong></td><td>2022</td><td>权重 + 激活双重量化，逐层重建式校准</td></tr>
+    <tr><td><strong>LUT-GEMM</strong></td><td>2023</td><td>非均匀量化（lookup table），NCU 友好</td></tr>
+  </table>
+
+  <h4><span class="num">2.2</span>三大必学方法（每个 45 分钟）</h4>
+  <div class="grid-3">
+    <div class="card method">
+      <div class="title">① GPTQ<span class="badge must">必学</span></div>
+      <div class="meta">2022 · ICLR'23</div>
+      <strong>基于二阶信息的逐列量化。</strong>把逐层量化视为最小化层输出重建误差 ‖Wx − Q(W)x‖² 的优化问题，利用 Hessian 近似（X = XXᵀ），<strong>逐列量化并用后续列补偿误差</strong>（源自经典 OBS/OBQ）。<br><br>
+      <span style="color:var(--muted);font-size:13.5px">权重 INT4 + 激活 FP16；对校准集敏感；是 vLLM / ExLlama 等 4-bit 推理的基础。现代实现见 <a href="https://github.com/ModelTC/gptqmodel" target="_blank">GPTQModel</a>。</span>
+    </div>
+    <div class="card method awq">
+      <div class="title">② AWQ<span class="badge must">必学</span></div>
+      <div class="meta">2023 · MLSys'24</div>
+      <strong>激活感知的缩放。</strong>并非所有权重通道同等重要——保护极少数（~1%）"显著通道"（由激活幅度识别）即可保住精度；为这些通道乘上 per-channel 缩放 s，等价于改变量化网格分布，<strong>无需混合精度、无需重训练</strong>。<br><br>
+      <span style="color:var(--muted);font-size:13.5px">量化速度快、跨模态/领域泛化好；工业界部署最广泛的方法之一。</span>
+    </div>
+    <div class="card method smooth">
+      <div class="title">③ SmoothQuant<span class="badge must">必学</span></div>
+      <div class="meta">2022 · ICLR'23</div>
+      <strong>难度从激活迁移到权重。</strong>数学等价变换：激活异常通道除以 s，对应权重列乘以 s —— 异常值被"平滑"进权重（权重比激活好量化得多），从而实现 <strong>W8A8 全量化</strong>。<br><br>
+      <span style="color:var(--muted);font-size:13.5px">真正的权重+激活整数量化，是 TensorRT-LLM、MS-AMP 等高速推理的关键。</span>
+    </div>
+  </div>
+  <div class="callout key"><span class="icon">🧠</span><div><strong>串联记忆</strong>：GPTQ 用"误差补偿"对付权重量化；AWQ 用"通道保护"对付权重量化；SmoothQuant 用"难度迁移"同时搞定权重和激活。三者都源于 §1.4 的异常值问题。</div></div>
+
+  <h4><span class="num">2.3</span>其他值得知道的方法（各 10 分钟）</h4>
+  <ul>
+    <li><strong>OmniQuant</strong>：可学习的等效变换（scale / clip 参数），统一框架。</li>
+    <li><strong>HQQ / QQQ</strong>：免校准数据的快速 4bit 量化，速度极快。</li>
+    <li><strong>QuaRot / SpinQuant（2024, Meta）</strong>：用<strong>旋转矩阵（Hadamard / 学习到的旋转）</strong>把异常值"打散"到所有通道，激活分布更均匀，从而支持 <strong>W4A4</strong> 甚至更低，是当前研究主线之一。</li>
+    <li><strong>GSQ 等新方法（2025）</strong>：面向极低位标量量化（W2/W3）的高精度方案，见 <a href="https://blog.csdn.net/Together_CZ/article/details/164954029" target="_blank">相关介绍</a>。</li>
+  </ul>
+  <div class="callout tip"><span class="icon">✍️</span><div><strong>下午练习</strong>：阅读三篇方法的摘要与图 1（各 ~15 分钟），在白纸上画出三种方法分别"动了什么"（权重列缩放？Hessian 补偿？激活平滑？）。</div></div>
+</section>
+
+<section id="d1-eve">
+  <h3>晚上 · QAT 与极低比特前沿（约 1.5–2 小时，可选深度）</h3>
+
+  <h4><span class="num">3.1</span>QAT（Quantization-Aware Training）</h4>
+  <ul>
+    <li><strong>原理</strong>：前向传播中插入"伪量化"（fake quantize：量化 → 反量化，STE 直通梯度反向传播），让模型在训练中适应量化噪声。</li>
+    <li><strong>LLM 场景</strong>：全量 QAT 太贵，主流是 <strong>QAT-LoRA 微调</strong>（只训 LoRA 适配器）；BRECQ / AdaRound 的思想也被移植到 LLM。</li>
+    <li><strong>选择准则</strong>：≥4bit 用 PTQ 即可；<strong>≤3bit 或 W4A4 以下基本必须 QAT</strong>。</li>
+  </ul>
+
+  <h4><span class="num">3.2</span>极低比特与前沿方向（了解即可，2024–2025）</h4>
+  <table>
+    <tr><th>方向</th><th>代表工作</th><th>一句话</th></tr>
+    <tr><td><strong>1.58-bit（三值）</strong></td><td>BitNet b1.58（微软, 2024）</td><td>权重只有 {−1, 0, +1}，需从零预训练（不是 PTQ）；最新研究探索 16→1.58-bit 持续预训练时机（<a href="https://aclanthology.org/2025.findings-acl.694/" target="_blank">ACL 2025</a>）</td></tr>
+    <tr><td><strong>非均匀量化</strong></td><td>QTIP / QuIP#</td><td>用格码（lattice codebook，E8 等）替代均匀网格，2bit 精度显著优于 GPTQ/AWQ</td></tr>
+    <tr><td><strong>旋转不变性</strong></td><td>QuaRot / SpinQuant / DuQuant</td><td>Hadamard 旋转打散异常值，实现 W4A4</td></tr>
+    <tr><td><strong>混合精度搜索</strong></td><td>MPQ 系列（<a href="https://ar5iv.labs.arxiv.org/html/2510.16805" target="_blank">2025 综述</a>）</td><td>逐层/逐模块自动决定谁用几 bit</td></tr>
+    <tr><td><strong>KV Cache 量化</strong></td><td>KIVI / KVQuant</td><td>2bit KV Cache，长上下文必读</td></tr>
+    <tr><td><strong>训练中量化</strong></td><td>MS-AMP（TE + QAT）</td><td>训练 / 微调本身的低精度化</td></tr>
+    <tr><td><strong>新硬件内核</strong></td><td>LiquidGEMM（<a href="https://dl.acm.org/doi/10.1145/3712285.3759852" target="_blank">2025</a>）</td><td>W4A8 高性能服务内核</td></tr>
+  </table>
+  <div class="callout tip"><span class="icon">✍️</span><div><strong>晚上任务</strong>：挑 BitNet b1.58 或 QTIP 的博客/论文精读 45 分钟，写 5 行笔记：动机 → 方法 → 结果 → 与 PTQ 的本质区别 → 何时该用它。</div></div>
+</section>
+
+<!-- ================= DAY 2 ================= -->
+<div class="day-banner"><span class="pill">第二天 · 周日</span><h2>工具链实战与端到端部署</h2></div>
+
+<section id="d2-am">
+  <h3>上午 · 四大常用工具（约 3 小时）</h3>
+  <div class="callout tip"><span class="icon">🛠️</span><div>建议环境：Linux / WSL2 + conda，GPU 显存 ≥ 12GB 更佳（纯 CPU 也可走 GGUF 路线）。</div></div>
+
+  <h4><span class="num">4.1</span>GPTQModel —— 训练后量化工具箱（1 小时）</h4>
+  <p><a href="https://github.com/ModelTC/gptqmodel" target="_blank">ModelTC/gptqmodel</a>：活跃维护，支持 GPTQ / AWQ / HQQ 等多算法，兼容 vLLM，取代 AutoGPTQ。</p>
+  <div class="code-label">$ pip install gptqmodel</div>
+  <pre><code>from gptqmodel import GptqModel
+from transformers import AutoTokenizer
+
+model = GptqModel.load("./Qwen2.5-1.5B-gptq-int4")   # 从 HF 下载已量化模型
+tok = AutoTokenizer.from_pretrained("./Qwen2.5-1.5B-gptq-int4")
+print(model.generate(tok("量化是什么？", return_tensors="pt").input_ids.cuda()))</code></pre>
+  <p>也可自己量化：<code>GptqModel.from_pretrained(fp16_model_path, quant_config)</code> 一行完成校准 + 量化。</p>
+
+  <h4><span class="num">4.2</span>llama.cpp / GGUF —— CPU 与边缘部署之王（1 小时）</h4>
+  <ul>
+    <li><strong>GGUF</strong>：llama.cpp 的模型容器格式，支持 Q8_0 / Q6_K / <strong>Q4_K_M</strong> / IQ4_XS 等多种 K-quant 与 <strong>i-quant</strong>（重要性矩阵加权的低比特）。</li>
+    <li><strong>Unsloth Dynamic GGUF</strong>：按层动态选择 4/5/6bit（敏感层保留更高精度），同尺寸下精度显著优于静态 Q4_K_M，见 <a href="https://unsloth.ai/blog/dynamic-v2" target="_blank">Unsloth Dynamic 2.0 发布</a>；可直接下载如 <a href="https://huggingface.co/unsloth/DeepSeek-R1-GGUF-UD" target="_blank">unsloth/DeepSeek-R1-GGUF-UD</a>。</li>
+  </ul>
+  <div class="code-label">$ git clone https://github.com/ggml-org/llama.cpp && cd llama.cpp</div>
+  <pre><code>cmake -B build &amp;&amp; cmake --build build -j        # 纯 CPU 即可
+# 下载一个 Q4_K_M GGUF 后：
+./build/bin/llama-cli -m model.Q4_K_M.gguf -p "你好，量化世界" -n 128</code></pre>
+
+  <h4><span class="num">4.3</span>vLLM —— 高吞吐服务端（45 分钟）</h4>
+  <p>生产部署标准选择；原生支持 GPTQ / AWQ / FP8 / INT8，融合内核（fused MoE、量化 attention），多 GPU 张量并行。</p>
+  <div class="code-label">$ pip install vllm</div>
+  <pre><code>vllm serve Qwen/Qwen2.5-1.5B-Instruct-GPTQ-Int4 \
+    --quantization gptq --dtype float16</code></pre>
+  <p>用 <code>curl</code> 或 openai SDK 请求，对比 FP16 版本的吞吐与显存。</p>
+
+  <h4><span class="num">4.4</span>bitsandbytes + 其他生态（15 分钟）</h4>
+  <ul>
+    <li><strong>bitsandbytes</strong>：<code>load_in_4bit/8bit</code> 一行加载，NF4 分块量化；QLoRA 微调的底座。</li>
+    <li><strong>MS-AMP / Transformer Engine</strong>：训练侧低精度（FP8）。</li>
+    <li><strong>TensorRT-LLM / MindSpore Lite</strong>：内置 SmoothQuant 等方案的推理引擎。</li>
+  </ul>
+  <table>
+    <tr><th>场景</th><th>推荐</th></tr>
+    <tr><td>研究 / 微调</td><td>bitsandbytes</td></tr>
+    <tr><td>GPU 服务端</td><td>vLLM + GPTQ / AWQ</td></tr>
+    <tr><td>CPU / 手机 / Mac</td><td>llama.cpp + GGUF</td></tr>
+  </table>
+</section>
+
+<section id="d2-pm">
+  <h3>下午 · 综合实战项目（约 3 小时）</h3>
+  <div class="card"><strong>项目：量化 Qwen2.5-1.5B-Instruct 并做完整评测</strong>
+    <ol>
+      <li><strong>基线</strong>：加载 FP16 模型，在 20 道中文常识/数学题（自备 JSON）上跑推理，记录：答案正确率、tokens/s、显存峰值。</li>
+      <li><strong>GPTQ INT4</strong>：用 GPTQModel 量化（或直接下 HF 现成版），vLLM 部署，同题评测。</li>
+      <li><strong>GGUF Q4_K_M</strong>：转 GGUF（llama.cpp 的 <code>convert_hf_to_gguf.py</code> + <code>llama-quantize</code>，或直接下现成），CPU 推理评测。</li>
+      <li><strong>（进阶）</strong>用 <code>llama-perplexity</code> 对比 Q4_K_M / Q6_K / Q8_0 的困惑度曲线；观察 Unsloth Dynamic 版是否更好。</li>
+    </ol>
+  </div>
+  <table>
+    <tr><th>配置</th><th>显存 / 内存</th><th>正确率</th><th>吞吐</th><th>备注</th></tr>
+    <tr><td>FP16</td><td>~3.6 GB</td><td>X%</td><td>—</td><td>基线</td></tr>
+    <tr><td>GPTQ INT4 + vLLM</td><td>~1.2 GB</td><td>≈X−1~2%</td><td>↑</td><td>GPU 路线</td></tr>
+    <tr><td>Q4_K_M GGUF CPU</td><td>~1.1 GB RAM</td><td>≈X−2%</td><td>慢</td><td>边缘路线</td></tr>
+  </table>
+</section>
+
+<section id="d2-eve">
+  <h3>晚上 · 复盘与进阶路线（约 1 小时）</h3>
+
+  <h4><span class="num">5.1</span>自查清单（全部能答出即达标）</h4>
+  <div class="card check">
+    <label><input type="checkbox"><span>能手推仿射量化的 scale / zero-point 公式，并说明对称 vs 非对称</span></label>
+    <label><input type="checkbox"><span>能解释异常值为什么毁掉朴素量化</span></label>
+    <label><input type="checkbox"><span>能用三句话说清 GPTQ / AWQ / SmoothQuant 各自的解法</span></label>
+    <label><input type="checkbox"><span>知道何时必须从 PTQ 切换到 QAT</span></label>
+    <label><input type="checkbox"><span>独立完成过 ≥1 次量化 + 部署 + 精度对比全流程</span></label>
+  </div>
+
+  <h4><span class="num">5.2</span>进阶路线（接下来 2–4 周）</h4>
+  <ol>
+    <li><strong>读源码</strong>：GPTQModel 的 <code>quantizer/</code> 目录（读懂逐列补偿实现）。</li>
+    <li><strong>读论文</strong>：QTIP、QuaRot / SpinQuant、BitNet b1.58、KIVI。</li>
+    <li><strong>做深入项目</strong>：
+      <ul>
+        <li>用 QLoRA（bitsandbytes）微调一个 4bit 模型；</li>
+        <li>尝试 W8A8 SmoothQuant 部署（TensorRT-LLM 或 MS-AMP 路线）；</li>
+        <li>复现 Unsloth Dynamic GGUF 的分层敏感度分析思路。</li>
+      </ul>
+    </li>
+    <li><strong>关注社区</strong>：llama.cpp / vLLM / GPTQModel 的 GitHub releases，量化方法迭代很快，保持每两周扫一次更新。</li>
+  </ol>
+</section>
+
+<!-- ================= Appendix ================= -->
+<section id="glossary">
+  <h3>附录 A · 术语速查</h3>
+  <table>
+    <tr><th>术语</th><th>含义</th></tr>
+    <tr><td>PTQ / QAT</td><td>训练后量化 / 量化感知训练</td></tr>
+    <tr><td>W4A16</td><td>权重 4bit、激活 16bit</td></tr>
+    <tr><td>KV Cache</td><td>注意力缓存，长上下文显存大户</td></tr>
+    <tr><td>K-quant / i-quant</td><td>llama.cpp 的分块量化 / 重要性加权低比特量化</td></tr>
+    <tr><td>NF4</td><td>bitsandbytes 的 4bit 正态分布分位数量化</td></tr>
+    <tr><td>STE</td><td>直通估计器（QAT 梯度反传技巧）</td></tr>
+    <tr><td>Hadamard 旋转</td><td>打散异常值的正交变换（QuaRot 核心）</td></tr>
+    <tr><td>Per-channel / Per-tensor</td><td>每通道一组 scale / 整个张量一组 scale</td></tr>
+  </table>
+</section>
+
+<section id="refs">
+  <h3>附录 B · 参考资料清单</h3>
+  <h4>论文 / 综述</h4>
+  <ul>
+    <li>GPTQ: Accurate Post-Training Quantization (ICLR'23) · AWQ (MLSys'24) · SmoothQuant (ICLR'23)</li>
+    <li><a href="https://atomgit.com/mindspore/mindspore-lite/issues/558" target="_blank">LLM 量化研究综述 2020–2026</a></li>
+    <li><a href="https://ar5iv.labs.arxiv.org/html/2510.16805" target="_blank">Mixed-Precision Quantization for Language Models（2025）</a></li>
+    <li><a href="https://dl.acm.org/doi/pdf/10.1145/3776759.3776826" target="_blank">QAT 应用综述（ACM 2025）</a></li>
+    <li><a href="https://www.sciencedirect.com/science/article/pii/S2666827025001458" target="_blank">神经网络优化与量化综述（ScienceDirect）</a></li>
+    <li><a href="https://aclanthology.org/2025.findings-acl.694/" target="_blank">BitNet 1.58-bit 持续预训练研究（ACL 2025）</a></li>
+  </ul>
+  <h4>工具 / 项目</h4>
+  <ul>
+    <li><a href="https://github.com/ModelTC/gptqmodel" target="_blank">GPTQModel</a> · <a href="https://github.com/ggml-org/llama.cpp" target="_blank">llama.cpp</a> · <a href="https://docs.vllm.ai/" target="_blank">vLLM</a> · <a href="https://github.com/bitsandbytes-foundation/bitsandbytes" target="_blank">bitsandbytes</a></li>
+    <li><a href="https://unsloth.ai/blog/dynamic-v2" target="_blank">Unsloth Dynamic 2.0 GGUF</a> · <a href="https://huggingface.co/unsloth/DeepSeek-R1-GGUF-UD" target="_blank">DeepSeek-R1-GGUF-UD 模型</a></li>
+  </ul>
+  <h4>前沿跟踪</h4>
+  <ul>
+    <li><a href="https://dl.acm.org/doi/10.1145/3712285.3759852" target="_blank">LiquidGEMM：W4A8 高性能服务内核（ACM 2025）</a></li>
+    <li>GSQ 等极低位标量量化（<a href="https://blog.csdn.net/Together_CZ/article/details/164954029" target="_blank">介绍</a>）</li>
+  </ul>
+</section>
+
+<footer>周末两天 · 大模型量化学习手册 —— 祝学习顺利！有 GPU 尽量动手，量化的直觉一半来自实验中的意外。</footer>
+</main>
+</div>
+
+<script>
+// Reading progress bar
+const bar = document.getElementById('progress');
+addEventListener('scroll', () => {
+  const h = document.documentElement;
+  bar.style.width = (h.scrollTop / (h.scrollHeight - h.clientHeight) * 100) + '%';
+}, {passive: true});
+
+// TOC active highlighting
+const links = [...document.querySelectorAll('.toc a')];
+const secs = links.map(a => document.querySelector(a.getAttribute('href')));
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      const i = secs.indexOf(e.target);
+      if (i >= 0) links[i].classList.add('active');
+    }
+  });
+}, {rootMargin: '-15% 0px -70% 0px'});
+secs.forEach(s => s && obs.observe(s));
+
+// Persist checklist state
+document.querySelectorAll('.check input').forEach((cb, i) => {
+  const key = 'quant-handbook-check-' + i;
+  cb.checked = localStorage.getItem(key) === '1';
+  cb.addEventListener('change', () => localStorage.setItem(key, cb.checked ? '1' : '0'));
+});
+</script>
+</body>
+</html>
